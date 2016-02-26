@@ -11,6 +11,7 @@ def toDate(v):
         return
     return datetime.datetime.strptime(v[0:v.find('+')], '%Y-%m-%d').date()
 
+
 class FioAccount(object):
     date_start = None
     date_end = None
@@ -120,14 +121,53 @@ class Fio(object):
 <messageForRecipient>%(message)s</messageForRecipient>
 <comment>%(comment)s</comment>
 <paymentType>%(type)s</paymentType>
-</DomesticTransaction>
-'''
+</DomesticTransaction>'''
 
-    class FioGetError(Exception):
-        pass
+    EURO_PAYMENT = '''<T2Transaction>
+<accountFrom>1234562</accountFrom>
+<currency>EUR</currency>
+<amount>100.00</amount>
+<accountTo>AT611904300234573201</accountTo>
+<ks>0558</ks>
+<vs>1234567890</vs>
+<ss>1234567890</ss>
+<bic>ABAGATWWXXX</bic>
+<date>2013-04-25</date>
+<comment>Erste Zahlung</comment>
+<benefName>Hans Gruber</benefName>
+<benefStreet>Gugitzgasse 2</benefStreet>
+<benefCity>Wien</benefCity>
+<benefCountry>AT</benefCountry>
+<remittanceInfo1></remittanceInfo1>
+<remittanceInfo2></remittanceInfo2>
+<remittanceInfo3></remittanceInfo3>
+<paymentType>431008</paymentType>
+</T2Transaction>'''
+
+    PAYMENT = '''<ForeignTransaction>
+<accountFrom>1234562</accountFrom>
+<currency>USD</currency>
+<amount>100.00</amount>
+<accountTo>PK36SCBL0000001123456702</accountTo>
+<bic>ALFHPKKAXXX</bic>
+<date>2013-04-25</date>
+<comment>Payment a0315</comment>
+<benefName>Amir Khan</benefName>
+<benefStreet>Nishtar Rd 13</benefStreet>
+<benefCity>Karachi</benefCity>
+<benefCountry>PK</benefCountry>
+<remittanceInfo1> Payment for hotel 032013</ remittanceInfo1>
+<remittanceInfo2></ remittanceInfo2>
+<remittanceInfo3></ remittanceInfo3>
+<remittanceInfo4></ remittanceInfo4>
+<detailsOfCharges>470502</detailsOfCharges>
+<paymentReason>348</paymentReason>
+</ForeignTransaction>'''
 
 
-    def __init__(self, token='f8bCR1ifPOWLPCToJK4OwM90maCfk3qtqH8nmjUam0U3SgqevQGHOIM3iP9BFaw6'): #TODO: remove!!!
+    def __init__(self, token):
+        '''
+        '''
         self.token = token
         self.domestic_payment_list = []
         self.euro_payment_list = []
@@ -137,6 +177,7 @@ class Fio(object):
         '''
         Get new payment
         '''
+
         response = requests.get(self.LAST_URL % {'token': self.token})
         if response.status_code == requests.codes.ok:
             return self._parse(response.json())
@@ -150,6 +191,7 @@ class Fio(object):
         :type param: int or datetime or str
 
         '''
+
         if isinstance(param, datetime.datetime) or isinstance(param, datetime.date):
             param = param.strftime('%Y-%m-%d')
 
@@ -163,6 +205,9 @@ class Fio(object):
         response.raise_for_status()
 
     def period(self, start, end):
+        '''
+        '''
+
         if isinstance(start, datetime.datetime) or isinstance(start, datetime.date):
             start = start.strftime('%Y-%m-%d')
 
@@ -176,12 +221,18 @@ class Fio(object):
 
 
     def _parse(self, data):
+        '''
+        '''
+
         response = FioResult()
         response.setAccount(data['accountStatement']['info'])
         response.setPayments(data['accountStatement']['transactionList']['transaction'])
         return response
 
     def addDomesticPayment(self, amount, acount_to, bank_to, ks='', vs='', ss='', date=None, message='', comment='', currency='CZK', type='431001'):
+        '''
+        '''
+
         if date is None:
             date = datetime.datetime.now().date()
 
@@ -199,23 +250,21 @@ class Fio(object):
                                             'type': type,
                                             })
     def addEuroPayment(self):
+        '''
+        '''
+
         pass
 
     def addPayment(self):
+        '''
+        '''
+
         pass
 
     def send(self, account):
-        #data = {'token': self.token, 'type': 'xml'}
-        #t = loader.get_template('fio.xml')
-        #c = Context({ 'account_from': account, 'payment_list': payments, 'd': timezone.now()})
-        #files = {'file': t.render(c)}
-        #response = requests.post(
-                                    #"https://www.fio.cz/ib_api/rest/import/",
-                                    #data=data,
-                                    #files=files
-                                #)
-        #tree = ElementTree.fromstring(response.content)
-        #print tree
+        '''
+        '''
+
         transaction_list = {}
         counter = 0
         message = self.HEADER
@@ -265,6 +314,9 @@ class Fio(object):
         return counter
 
     def _send(self, message, transaction_list):
+        '''
+        '''
+
         data = {'token': self.token, 'type': 'xml'}
         response = requests.post(self.SEND_URL, data=data, files={'file': message})
 
