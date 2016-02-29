@@ -280,7 +280,11 @@ class Fio(object):
             if counter == self.MAX_COMMAND:
                 break
 
+            # skip loop payment
             transaction = self.domestic_payment_list.pop()
+            if transaction['account_to'] == account and transaction['bank_to'] == '2010':
+                continue
+
             counter += 1
             message += self.DOMESTIC_PAYMENT % {
                 'account_from': account,
