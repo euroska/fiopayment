@@ -3,6 +3,10 @@ import logging
 import datetime
 import requests
 import xml.etree.ElementTree as ElementTree
+import unicodedata
+def strip_accents(s):
+   return ''.join(c for c in unicodedata.normalize('NFD', s)
+                  if unicodedata.category(c) != 'Mn')
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +111,9 @@ class Fio(object):
     SETLAST_URL = 'https://www.fio.cz/ib_api/rest/set-last-id/%(token)s/%(id)s/'
     SEND_URL = 'https://www.fio.cz/ib_api/rest/import/'
 
-    HEADER = '<?xml version="1.0" encoding="UTF-8"?><Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd"><Orders>'
-    FOOTER = '</Orders></Import>'
-    DOMESTIC_PAYMENT = '''<DomesticTransaction><accountFrom>%(account_from)s</accountFrom>
+    HEADER = u'<?xml version="1.0" encoding="UTF-8"?><Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd"><Orders>'
+    FOOTER = u'</Orders></Import>'
+    DOMESTIC_PAYMENT = u'''<DomesticTransaction><accountFrom>%(account_from)s</accountFrom>
 <currency>%(currency)s</currency>
 <amount>%(amount)s</amount>
 <accountTo>%(account_to)s</accountTo>
@@ -123,7 +127,7 @@ class Fio(object):
 <paymentType>%(type)s</paymentType>
 </DomesticTransaction>'''
 
-    EURO_PAYMENT = '''<T2Transaction>
+    EURO_PAYMENT = u'''<T2Transaction>
 <accountFrom>1234562</accountFrom>
 <currency>EUR</currency>
 <amount>100.00</amount>
@@ -144,7 +148,7 @@ class Fio(object):
 <paymentType>431008</paymentType>
 </T2Transaction>'''
 
-    PAYMENT = '''<ForeignTransaction>
+    PAYMENT = u'''<ForeignTransaction>
 <accountFrom>1234562</accountFrom>
 <currency>USD</currency>
 <amount>100.00</amount>
@@ -245,8 +249,8 @@ class Fio(object):
                                             'vs': vs,
                                             'ss': ss,
                                             'date': date,
-                                            'message': message,
-                                            'comment': comment,
+                                            'message': message.encode('ascii', 'ignore').decode('ascii'),
+                                            'comment': comment.encode('ascii', 'ignore').decode('ascii'),
                                             'type': type,
                                             })
     def addEuroPayment(self):
@@ -321,13 +325,12 @@ class Fio(object):
         '''
 
         data = {'token': self.token, 'type': 'xml'}
-        response = requests.post(self.SEND_URL, data=data, files={'file': message})
+        response = requests.post(self.SEND_URL, data=data, files={'file': strip_accents(message)})
 
         if response.status_code == requests.codes.conflict:
             response.raise_for_status()
 
-        content = str(response.content)
-        tree = ElementTree.fromstring(content)
+        tree = ElementTree.fromstring(response.content)
         code = tree.find('result/errorCode')
 
         if code.text == '0':
