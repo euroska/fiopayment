@@ -261,6 +261,9 @@ class Fio(object):
 
         pass
 
+    def hasPayment(self):
+        return len(self.domestic_payment_list) + len(self.euro_payment_list) + len(self.payment_list)
+
     def send(self, account):
         '''
         '''
@@ -323,11 +326,13 @@ class Fio(object):
         if response.status_code == requests.codes.conflict:
             response.raise_for_status()
 
-        tree = ElementTree.fromstring(response.content)
+        content = str(response.content)
+        tree = ElementTree.fromstring(content)
         code = tree.find('result/errorCode')
 
         if code.text == '0':
             return tree.find('result/idInstruction').text
+
 
         code = tree.find('result/errorCode')
         status = tree.find('result/status')
